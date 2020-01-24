@@ -11,44 +11,27 @@
 #include <errno.h>
 #include <string.h>
 #include "tracers.h"
+#include "daemon-tool.h"
 
-class daemon_c
-{
-	int m_pid;
-
-public:
-	void Run() noexcept;
-};
+static std::unique_ptr<daemonTool_c>(daemonTool);
 
 int main() {
 	std::ostringstream oss;
-	int pid, err;
 
-	// TODO: load config
-
-	// try to create child
-	pid = fork();
-	switch (pid)
+	try
 	{
-	case -1:
-		// error
-		oss << "start daemon failed (" << strerror(errno) << ")";
-		TRACE(oss);
-		return -1;
-
-	case 0:
-		// child: start new session
-		setsid();
-		close (STDIN_FILENO);
-		close (STDOUT_FILENO);
-		close (STDERR_FILENO);
-		// err = monitorProc();
-		return err;
-
-	default:
-		// parent: exit
-		oss << "start daemon! pid:" << pid;
-		TRACE(oss);
+		daemonTool = std::make_unique<daemonTool_c>();
+		if (daemonTool->IsChild())
+		{
+			daemonTool->Run();
+		} else {
+			oss << "daemon running. Exit";
+			TRACE(oss);
+		}
+	} catch (exc_c &exc) {
+		// fail to run daemon
+		exc.ToStderr();
 	}
+
 	return 0;
 }

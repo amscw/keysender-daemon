@@ -24,8 +24,16 @@ struct logExc_c : public exc_c
 		std::cerr << "WTF:" << m_strFile << "(" << m_strFunction << "):" << strErrorMessages[(int)m_errCode] << "-" << m_strErrorDescription << std::endl;
 	}
 
+	std::string ToString() noexcept override
+	{
+		oss.str("");
+		oss.clear();
+		oss << "WTF:" << m_strFile << "(" << m_strFunction << "):" << strErrorMessages[(int)m_errCode] << "-" << m_strErrorDescription;
+		return oss.str();
+	}
 	private:
 		static std::string strErrorMessages[];
+		std::ostringstream oss;
 };
 
 class logger_c

@@ -18,6 +18,7 @@ struct exc_c /* : public std::exception */
 	inline const std::string &ErrorDescription() const noexcept { return m_strErrorDescription; }
 	virtual const std::string &Msg() const noexcept = 0;
 	virtual void ToStderr() const noexcept = 0;
+	virtual std::string ToString() noexcept = 0;
 	virtual void Perror() const noexcept { perror(m_strFunction.c_str()); }
 };
 
