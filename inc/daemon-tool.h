@@ -16,6 +16,7 @@
 struct daemonToolExc_c : public exc_c
 {
 	enum class errCode_t : std::uint32_t {
+		ERROR_OPEN,
 		ERROR_FORK,
 		ERROR_EXEC_RUN,
 		ERROR_EXEC_FAIL,
@@ -49,6 +50,9 @@ class daemonTool_c
 {
 	std::unique_ptr<logger_c>logger = nullptr;
 	std::unique_ptr<daemon_c> sshpass = nullptr;
+	std::unique_ptr<ping_c> ping = nullptr;
+
+	const std::string pidFilename{"pid"};
 
 	int pid;
 	sigset_t sigset;
@@ -62,6 +66,7 @@ public:
 
 private:
 	int exec(std::unique_ptr<daemon_c> daemon);
+	void savePIDToFile(const std::string &filename);
 };
 
 #endif // _DAEMON_TOOL

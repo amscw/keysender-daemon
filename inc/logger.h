@@ -44,6 +44,7 @@ class logger_c
 public:
 	logger_c(const std::string &filename);
 	void Write(const std::string &msg) const;
+	void Write(std::ostringstream &oss) const;
 
 private:
 	inline std::string prefix() const noexcept

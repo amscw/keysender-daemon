@@ -39,10 +39,10 @@ struct daemonExc_c : public exc_c
 
 class daemon_c
 {
+	static const std::size_t BUFSIZE;
 	int pid;
 	int pipefd[2];
 	char *buf;
-	static const std::size_t BUFSIZE;
 
 public:
 	daemon_c();
@@ -54,17 +54,43 @@ public:
 	inline int Pid() const noexcept { return pid; }
 
 protected:
-	char **argv;	// массив строк, заканчивающийся NULL
+	std::vector<std::string> args;	// формируется наследником
+	char **argv;					// массив строк, заканчивающийся NULL
+	void buildArgs(const std::string& cmdline) noexcept;
+	virtual std::string buildCmdline() const noexcept = 0;
 
 };
 
 class sshpass_c : public daemon_c
 {
-	std::vector<std::string> args;
+public:
+	using login_t = std::pair<std::string, std::string>;
+
+private:
+	std::string ipaddr;
+	login_t login;
+	std::string srcFile;
+	std::string dstDir;
+	int timeout;
 
 public:
-	sshpass_c();
-	virtual ~sshpass_c();
+	sshpass_c(const std::string &a, const login_t &l, const std::string &src, const std::string &dst, int t);
+
+private:
+	std::string buildCmdline() const noexcept override;
 };
 
+class ping_c : public daemon_c
+{
+	std::string interface;
+	std::string ipaddr;
+	int count;
+	int timeout;
+
+public:
+	ping_c(const std::string &I, const std::string &a, int c, int t);
+
+private:
+	std::string buildCmdline() const noexcept override;
+};
 #endif // _DAEMON_H

@@ -30,3 +30,19 @@ void logger_c::Write(const std::string &msg) const
 	ofs << prefix() << msg << std::endl;
 	ofs.close();
 }
+
+void logger_c::Write(std::ostringstream &oss) const
+{
+	std::ofstream ofs;
+	std::lock_guard<std::mutex> guard(m_mutex);
+
+	ofs.open(m_filename, std::ios::out | std::ios::app);
+	if (!ofs.is_open())
+		throw logExc_c(logExc_c::errCode_t::ERROR_OPEN, __FILE__, __FUNCTION__);
+
+	// ofs.write(logline.c_str(), logline.size());
+	ofs << prefix() << oss.str() << std::endl;
+	ofs.close();
+	oss.clear();
+	oss.str("");
+}

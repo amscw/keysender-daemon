@@ -39,6 +39,9 @@ daemon_c::~daemon_c()
 {
 	if (buf != nullptr)
 		delete [] buf;
+
+	if (argv != nullptr)
+		delete [] argv;
 }
 
 int daemon_c::Exec()
@@ -63,29 +66,22 @@ const char* daemon_c::Stdout() noexcept
 	return buf;
 }
 
-sshpass_c::sshpass_c()
+void daemon_c::buildArgs(const std::string &cmdline) noexcept
 {
-	std::ostringstream cmdline;
-	std::string str;
 	size_t pos, nextpos;
 	int i;
-
+#if defined(DBG_DAEMON_ARGS)
 	std::ostringstream oss;
-
-	// create cmd line
-	cmdline << "sshpass -p root scp /home/alex-m/keys root@192.168.0.2:/mnt/configs";
-	str = std::move(cmdline.str());
+#endif
 
 	// create args
-	for (pos = 0, nextpos = str.find(' ', pos); nextpos != std::string::npos; nextpos = str.find(' ', pos))
+	for (pos = 0, nextpos = cmdline.find(' ', pos); nextpos != std::string::npos; nextpos = cmdline.find(' ', pos))
 	{
-		args.emplace_back(str.substr(pos, nextpos - pos));
+		args.emplace_back(cmdline.substr(pos, nextpos - pos));
 		pos = nextpos+1;
 	}
-	if (pos < str.length())
-		args.emplace_back(str.substr(pos, str.length() - pos));
-
-	TRACE(cmdline);
+	if (pos < cmdline.length())
+		args.emplace_back(cmdline.substr(pos, cmdline.length() - pos));
 
 	// create argv
 	// TODO: use smart pointer!
@@ -94,14 +90,54 @@ sshpass_c::sshpass_c()
 	for (i = 0; i < static_cast<int>(args.size()); i++)
 	{
 		argv[i] = const_cast<char*>(args.at(i).c_str());
-		// oss << argv[i];
-		// TRACE(oss);
+#if defined(DBG_DAEMON_ARGS)
+		oss << argv[i];
+		TRACE(oss);
+#endif
 	}
 	argv[i] = nullptr;
 }
 
-sshpass_c::~sshpass_c()
+sshpass_c::sshpass_c(const std::string &a, const login_t &l, const std::string &src, const std::string &dst, int t) :
+		ipaddr(a), login(l), srcFile(src), dstDir(dst), timeout(t)
 {
-	if (argv != nullptr)
-		delete [] argv;
+	buildArgs(std::move(buildCmdline()));
+}
+
+std::string sshpass_c::buildCmdline() const noexcept
+{
+	std::ostringstream cmdline;
+	std::string str;
+
+	// TODO: validate parameters
+	// ...
+
+	// create cmd line
+	// "sshpass -p root scp /home/alex-m/keys root@192.168.0.2:/mnt/configs";
+	cmdline << "sshpass" << " -p " << login.second << " scp " << srcFile << " " << login.first << "@" << ipaddr << ":" << dstDir;
+	str = cmdline.str();
+	TRACE(cmdline);
+	return str;
+
+}
+
+ping_c::ping_c(const std::string &I, const std::string &a, int c, int t) :
+		interface(I), ipaddr(a), count(c), timeout(t)
+{
+	buildArgs(std::move(buildCmdline()));
+}
+
+std::string ping_c::buildCmdline() const noexcept
+{
+	std::ostringstream cmdline;
+	std::string str;
+
+	// TODO: validate parameters
+	// ...
+
+	// create cmd line
+	cmdline << "ping" << " -I " << interface << " -W " << timeout << " -c " << count << " " << ipaddr;
+	str = cmdline.str();
+	TRACE(cmdline);
+	return str;
 }
