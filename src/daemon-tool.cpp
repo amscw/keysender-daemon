@@ -1,6 +1,5 @@
 #include "daemon-tool.h"
 
-
 std::string daemonToolExc_c::strErrorMessages[] = {
 		"can't open file",
 		"can't fork to new process",
@@ -65,10 +64,12 @@ int daemonTool_c::exec(std::unique_ptr<daemon_c> daemon)
 	} else {
 		// parent process
 		wait(&wstatus);
+#if defined(DBG_PROCESS_TRACE)
 		std::string str(daemon->Stdout());
 		logger->Write(str);
 		oss << "process " << daemon->Pid() << " terminated with status: " << "0x" << std::hex << wstatus;
 		logger->Write(oss);
+#endif // DBG_PROCESS_TRACE
 	}
 
 	if (!WIFEXITED(wstatus))
@@ -118,6 +119,7 @@ int daemonTool_c::Run()
 {
 	std::ostringstream oss;
 	int err;
+	struct timespec ts = {0, 0};	// s, ns
 
 	// prepare signal set
 	sigemptyset(&sigset);
@@ -137,7 +139,7 @@ int daemonTool_c::Run()
 		logger->Write(exc.ToString());
 		exit(-1);
 	}
-	oss << "pid saved to " << pidFilename;
+	oss << "pid saved to file \"" << pidFilename << "\"";
 	logger->Write(oss);
 
 	// load configuration
@@ -147,12 +149,53 @@ int daemonTool_c::Run()
 		logger->Write(exc.msg);
 		exit(-1);
 	}
-	oss << "configuration successfully loaded from " << cfgFilename;
+	oss << "configuration successfully loaded from \"" << cfgFilename << "\"";
 	logger->Write(oss);
 
 	// start engine
 	while (1)
 	{
+		// TODO: process the signals
+		err = sigtimedwait(&sigset, &siginfo, &ts);
+		if (err > 0)
+		{
+			oss << "received the signal: " << err << "/";
+			switch (siginfo.si_signo)
+			{
+				case SIGQUIT:
+					oss << "SIGQUIT";
+					exit(0);
+					break;
+
+				case SIGINT:
+					oss << "SIGINT";
+					break;
+
+				case SIGTERM:
+					oss << "SIGTERM";
+					exit(0);
+					break;
+
+				case SIGCHLD:
+					oss << "SIGCHLD";
+					break;
+
+				case SIGUSR1:
+					oss << "SIGUSR1";
+					exit(0);
+					break;
+
+				default:
+					oss << "unknown";
+			}
+#if defined(DBG_SIGNALS)
+			logger->Write(oss);
+#else
+			oss.str("");
+			oss.clear();
+#endif
+		}
+
 		try
 		{
 			// waiting connection to slave
@@ -162,10 +205,15 @@ int daemonTool_c::Run()
 					cfg.ping.count,
 					cfg.ping.timeout);
 			err = exec(std::move(ping));
+#if defined(DBG_PROCESS_TRACE)
 			oss << "ping exit code: " << err << ", destroyed: " << std::boolalpha << !static_cast<bool>(ping);
 			logger->Write(oss);
-//			if (err != 0)
-//				continue;
+#endif
+			if (err == 0)
+			{
+				oss << "ping ok! try ssh...";
+				logger->Write(oss);
+			} else continue;
 
 			// attempt to pass the keys to slave
 			sshpass = std::make_unique<sshpass_c>(
@@ -175,15 +223,20 @@ int daemonTool_c::Run()
 					cfg.cmn.dstdir,
 					cfg.sshp.timeout);
 			err = exec(std::move(sshpass));
+#if defined(DBG_PROCESS_TRACE)
 			oss << "sshpass exit code: " << err << ", destroyed: " << std::boolalpha << !static_cast<bool>(sshpass);
 			logger->Write(oss);
-//			if (err != 0)
-//				continue;
+#endif
+			if (err == 0)
+			{
+				oss << "keys fired! Exit";
+				logger->Write(oss);
+				break;
+			} else continue;
 		} catch (exc_c &exc) {
 			logger->Write(exc.ToString());
 			exit(-1);
 		}
-		break;
 	}
 	return 0;
 }

@@ -2,7 +2,7 @@
 
 # общие настройки
 common:
-    ifname: 'br0'
+    ifname: 'enp2s0' #'br0'
     ipaddr: '192.168.0.2'
     login: 'root'
     password: 'root'

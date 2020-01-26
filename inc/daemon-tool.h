@@ -9,8 +9,9 @@
 #include <sys/signal.h>
 #include <sys/wait.h>
 #include <yaml-cpp/yaml.h>
+
+#include "common.h"
 #include "logger.h"
-#include "tracers.h"
 #include "exc.h"
 #include "daemon.h"
 
