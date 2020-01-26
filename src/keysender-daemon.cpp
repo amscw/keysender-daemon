@@ -15,12 +15,19 @@
 
 static std::unique_ptr<daemonTool_c>(daemonTool);
 
-int main() {
+int main(int argc, char *argv[]) {
 	std::ostringstream oss;
+
+	if (argc != 2)
+	{
+		oss << "Usage: " << argv[0] << " <filename>.yaml";
+		TRACE(oss);
+		return -1;
+	}
 
 	try
 	{
-		daemonTool = std::make_unique<daemonTool_c>();
+		daemonTool = std::make_unique<daemonTool_c>(std::string(const_cast<const char*>(argv[1])));
 		if (daemonTool->IsChild())
 		{
 			daemonTool->Run();

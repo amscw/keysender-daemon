@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/signal.h>
 #include <sys/wait.h>
+#include <yaml-cpp/yaml.h>
 #include "logger.h"
 #include "tracers.h"
 #include "exc.h"
@@ -53,20 +54,41 @@ class daemonTool_c
 	std::unique_ptr<ping_c> ping = nullptr;
 
 	const std::string pidFilename{"pid"};
+	/* const */std::string cfgFilename{"ks-configs.yaml"};
 
 	int pid;
 	sigset_t sigset;
 	siginfo_t siginfo;
 
+	YAML::Node cfgparser;
+	struct {
+		struct {
+			std::string ifname;
+			std::string ipaddr;
+			std::string login;
+			std::string password;
+			std::string srcfile;
+			std::string dstdir;
+		} cmn;
+		struct {
+			int timeout;
+			int count;
+		} ping;
+		struct {
+			int timeout;
+		} sshp;
+	} cfg;
+
 
 public:
-	daemonTool_c();
+	daemonTool_c(const std::string &filename);
 	inline bool IsChild() const noexcept {return (pid == 0); }
 	int Run();
 
 private:
 	int exec(std::unique_ptr<daemon_c> daemon);
 	void savePIDToFile(const std::string &filename);
+	void loadConfigsFromFile(const std::string &filename);
 };
 
 #endif // _DAEMON_TOOL

@@ -8,7 +8,7 @@ std::string daemonExc_c::strErrorMessages[] = {
 		"no arguments for exec()",
 };
 
-const std::size_t daemon_c::BUFSIZE = 1024;
+const std::size_t daemon_c::BUFSIZE = 2048;
 
 daemon_c::daemon_c() : pid(-1), buf(new char [BUFSIZE]), argv(nullptr)
 {
@@ -107,18 +107,16 @@ sshpass_c::sshpass_c(const std::string &a, const login_t &l, const std::string &
 std::string sshpass_c::buildCmdline() const noexcept
 {
 	std::ostringstream cmdline;
-	std::string str;
 
 	// TODO: validate parameters
 	// ...
 
 	// create cmd line
 	// "sshpass -p root scp /home/alex-m/keys root@192.168.0.2:/mnt/configs";
-	cmdline << "sshpass" << " -p " << login.second << " scp " << srcFile << " " << login.first << "@" << ipaddr << ":" << dstDir;
-	str = cmdline.str();
-	TRACE(cmdline);
-	return str;
+	cmdline << "sshpass" << " -p " << login.second << " " <<
+		"scp" << " -o ConnectTimeout=" << timeout << " " << srcFile << " " << login.first << "@" << ipaddr << ":" << dstDir;
 
+	return cmdline.str();
 }
 
 ping_c::ping_c(const std::string &I, const std::string &a, int c, int t) :
@@ -130,14 +128,12 @@ ping_c::ping_c(const std::string &I, const std::string &a, int c, int t) :
 std::string ping_c::buildCmdline() const noexcept
 {
 	std::ostringstream cmdline;
-	std::string str;
 
 	// TODO: validate parameters
 	// ...
 
 	// create cmd line
 	cmdline << "ping" << " -I " << interface << " -W " << timeout << " -c " << count << " " << ipaddr;
-	str = cmdline.str();
-	TRACE(cmdline);
-	return str;
+
+	return  cmdline.str();
 }

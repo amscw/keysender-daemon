@@ -8,7 +8,7 @@ std::string daemonToolExc_c::strErrorMessages[] = {
 		"exec process fail",
 };
 
-daemonTool_c::daemonTool_c() : pid(-1)
+daemonTool_c::daemonTool_c(const std::string &filename) : cfgFilename(filename), pid(-1)
 {
 	std::ostringstream oss;
 
@@ -89,6 +89,31 @@ void daemonTool_c::savePIDToFile(const std::string &filename)
 	ofs.close();
 }
 
+void daemonTool_c::loadConfigsFromFile(const std::string &filename)
+{
+	try
+	{
+		cfgparser = YAML::LoadFile(filename);
+
+		// common settings
+		cfg.cmn.ifname = cfgparser["common"]["ifname"].as<std::string>();
+		cfg.cmn.ipaddr = cfgparser["common"]["ipaddr"].as<std::string>();
+		cfg.cmn.login = cfgparser["common"]["login"].as<std::string>();
+		cfg.cmn.password = cfgparser["common"]["password"].as<std::string>();
+		cfg.cmn.srcfile = cfgparser["common"]["srcfile"].as<std::string>();
+		cfg.cmn.dstdir = cfgparser["common"]["dstdir"].as<std::string>();
+
+		// ping settings
+		cfg.ping.count = cfgparser["ping"]["count"].as<int>();
+		cfg.ping.timeout = cfgparser["ping"]["timeout"].as<int>();
+
+		// ssh settings
+		cfg.sshp.timeout = cfgparser["sshpass"]["timeout"].as<int>();
+	} catch (YAML::ParserException &exc) {
+		throw;
+	}
+}
+
 int daemonTool_c::Run()
 {
 	std::ostringstream oss;
@@ -112,6 +137,18 @@ int daemonTool_c::Run()
 		logger->Write(exc.ToString());
 		exit(-1);
 	}
+	oss << "pid saved to " << pidFilename;
+	logger->Write(oss);
+
+	// load configuration
+	try {
+		loadConfigsFromFile(cfgFilename);
+	} catch (YAML::ParserException &exc) {
+		logger->Write(exc.msg);
+		exit(-1);
+	}
+	oss << "configuration successfully loaded from " << cfgFilename;
+	logger->Write(oss);
 
 	// start engine
 	while (1)
@@ -119,7 +156,11 @@ int daemonTool_c::Run()
 		try
 		{
 			// waiting connection to slave
-			ping = std::make_unique<ping_c>("eth0", "192.168.0.2", 3, 2);
+			ping = std::make_unique<ping_c>(
+					cfg.cmn.ifname,
+					cfg.cmn.ipaddr,
+					cfg.ping.count,
+					cfg.ping.timeout);
 			err = exec(std::move(ping));
 			oss << "ping exit code: " << err << ", destroyed: " << std::boolalpha << !static_cast<bool>(ping);
 			logger->Write(oss);
@@ -127,7 +168,12 @@ int daemonTool_c::Run()
 //				continue;
 
 			// attempt to pass the keys to slave
-			sshpass = std::make_unique<sshpass_c>("192.168.0.2", sshpass_c::login_t("root", "root"), "keys", "/mnt/configs/", 2);
+			sshpass = std::make_unique<sshpass_c>(
+					cfg.cmn.ipaddr,
+					sshpass_c::login_t(cfg.cmn.login, cfg.cmn.password),
+					cfg.cmn.srcfile,
+					cfg.cmn.dstdir,
+					cfg.sshp.timeout);
 			err = exec(std::move(sshpass));
 			oss << "sshpass exit code: " << err << ", destroyed: " << std::boolalpha << !static_cast<bool>(sshpass);
 			logger->Write(oss);
