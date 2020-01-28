@@ -14,6 +14,7 @@
 #include "logger.h"
 #include "exc.h"
 #include "daemon.h"
+#include "hw.h"
 
 struct daemonToolExc_c : public exc_c
 {
@@ -53,6 +54,7 @@ class daemonTool_c
 	std::unique_ptr<logger_c>logger = nullptr;
 	std::unique_ptr<daemon_c> sshpass = nullptr;
 	std::unique_ptr<ping_c> ping = nullptr;
+	std::unique_ptr<hw_c> hw = nullptr;
 
 	const std::string pidFilename{"pid"};
 	/* const */std::string cfgFilename{"ks-configs.yaml"};

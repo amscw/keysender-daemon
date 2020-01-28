@@ -152,6 +152,16 @@ int daemonTool_c::Run()
 	oss << "configuration successfully loaded from \"" << cfgFilename << "\"";
 	logger->Write(oss);
 
+	// create hw level
+	try {
+		hw = std::make_unique<hw_c>(this->cfg.cmn.ifname);
+	} catch (exc_c &exc) {
+		logger->Write(exc.ToString());
+		exit(-1);
+	}
+	oss << "hardware abstraction level initialized";
+	logger->Write(oss);
+
 	// start engine
 	while (1)
 	{
@@ -198,6 +208,12 @@ int daemonTool_c::Run()
 
 		try
 		{
+			// wait for linkup
+			if (!hw->IsOnline())
+				continue;
+			oss << "link ok! try ping...";
+			logger->Write(oss);
+
 			// waiting connection to slave
 			ping = std::make_unique<ping_c>(
 					cfg.cmn.ifname,
