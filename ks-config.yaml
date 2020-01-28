@@ -3,7 +3,7 @@
 # общие настройки
 common:
     ifname: 'enp2s0' #'br0'
-    ipaddr: '192.168.0.2'
+    ipaddr: '192.168.1.2'
     login: 'root'
     password: 'root'
     srcfile: '/home/alex-m/keys'
