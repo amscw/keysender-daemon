@@ -93,4 +93,18 @@ public:
 private:
 	std::string buildCmdline() const noexcept override;
 };
+
+class fakeDaemon_c : public daemon_c
+{
+	// fake params...
+	std::string args;
+
+public:
+	fakeDaemon_c(const std::string &args) noexcept;
+
+private:
+	std::string buildCmdline() const noexcept override;
+};
+
 #endif // _DAEMON_H
+

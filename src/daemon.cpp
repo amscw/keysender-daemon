@@ -137,3 +137,18 @@ std::string ping_c::buildCmdline() const noexcept
 
 	return  cmdline.str();
 }
+
+fakeDaemon_c::fakeDaemon_c(const std::string &a) noexcept : args(a)
+{
+	buildArgs(std::move(buildCmdline()));
+}
+
+std::string fakeDaemon_c::buildCmdline() const noexcept
+{
+	std::ostringstream cmdline;
+
+	// create cmd line
+	cmdline << "fake_program" << " -p " << args;
+
+	return cmdline.str();
+}

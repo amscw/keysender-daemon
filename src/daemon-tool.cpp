@@ -75,7 +75,7 @@ int daemonTool_c::exec(std::unique_ptr<daemon_c> daemon)
 	if (!WIFEXITED(wstatus))
 		throw daemonToolExc_c(daemonToolExc_c::errCode_t::ERROR_EXEC_FAIL, __FILE__, __FUNCTION__);
 
-	return WEXITSTATUS(wstatus);
+	return static_cast<int>(std::int8_t(WEXITSTATUS(wstatus)));
 }
 
 void daemonTool_c::savePIDToFile(const std::string &filename)
@@ -208,6 +208,26 @@ int daemonTool_c::Run()
 
 		try
 		{
+			// !!! for test only !!!
+			oss << "try to run fake daemon...";
+			logger->Write(oss);
+			fake = std::make_unique<fakeDaemon_c>("any_param");
+			err = exec(std::move(fake));
+#if defined (DBG_PROCESS_TRACE)
+			oss << "fake exit code: " << err << ", destroyed: " << std::boolalpha << !static_cast<bool>(fake);
+			logger->Write(oss);
+#endif
+			// process child's exit code
+			if (err == -33) {
+				oss << "no such program. Exit";
+				logger->Write(oss);
+				exit (-1);
+			} else if (err != 0) {
+				// try again...
+				continue;
+			}
+			// !!! end of test !!!
+
 			// wait for linkup
 			if (!hw->IsOnline())
 				continue;
@@ -251,7 +271,20 @@ int daemonTool_c::Run()
 			} else continue;
 		} catch (exc_c &exc) {
 			logger->Write(exc.ToString());
-			exit(-1);
+
+			// process the exception
+			daemonToolExc_c &dtexc = dynamic_cast<daemonToolExc_c&>(exc);
+			switch (dtexc.Errcode())
+			{
+			case daemonToolExc_c::errCode_t::ERROR_EXEC_RUN:
+				// no such program
+				exit(-33);
+				break;
+
+			default:
+				// other errors
+				exit(-1);
+			}
 		}
 	}
 	return 0;
